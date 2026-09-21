@@ -1,6 +1,11 @@
 [package]
 name = "compressor"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
 
 [dependencies]
+nice-plug = { version = "0.4", features = ["assert_process_allocs"] }
+hound = "3"
