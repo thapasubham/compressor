@@ -6,6 +6,13 @@ edition = "2021"
 [lib]
 crate-type = ["cdylib", "lib"]
 
+[features]
+default = []
+# Offline WAV batch-processing CLI. Off by default: the standalone GUI
+# binary (src/main.rs) is the primary way to run and test this plugin now.
+cli = ["dep:hound"]
+
 [dependencies]
-nice-plug = { version = "0.4", features = ["assert_process_allocs"] }
-hound = "3"
+nice-plug = { version = "0.4", features = ["assert_process_allocs", "standalone"] }
+nice-plug-iced = "0.4"
+hound = { version = "3", optional = true }

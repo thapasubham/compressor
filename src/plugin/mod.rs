@@ -2,8 +2,10 @@ pub mod params;
 
 pub use params::CompressorParams;
 
-use crate::dsp::PeakCompressor;
+use crate::dsp::{gain_to_db, PeakCompressor};
+use crate::ui;
 use nice_plug::prelude::*;
+use std::sync::atomic::Ordering;
 use std::sync::Arc;
 
 pub struct Compressor {
@@ -41,12 +43,16 @@ impl Plugin for Compressor {
     const MIDI_INPUT: MidiConfig = MidiConfig::None;
     const SAMPLE_ACCURATE_AUTOMATION: bool = true;
 
-    type Editor = ();
+    type Editor = nice_plug_iced::IcedEditor;
     type SysExMessage = ();
     type BackgroundTask = ();
 
     fn params(&self) -> Arc<dyn Params> {
         self.params.clone()
+    }
+
+    fn editor(&mut self, _async_executor: AsyncExecutor<Self>) -> Option<Self::Editor> {
+        ui::create(self.params.clone())
     }
 
     fn activate(
@@ -75,6 +81,10 @@ impl Plugin for Compressor {
                 .fold(0.0f32, |max, sample| max.max(sample.abs()));
 
             let gain = self.dsp.next_gain(peak);
+            let gain_reduction_db = (gain_to_db(gain) - settings.makeup_db).min(0.0);
+            self.params
+                .gain_reduction
+                .store(gain_reduction_db, Ordering::Relaxed);
 
             for sample in channel_samples {
                 *sample *= gain;

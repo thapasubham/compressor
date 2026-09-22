@@ -1,5 +1,6 @@
 use crate::dsp::CompressorSettings;
 use nice_plug::prelude::*;
+use std::sync::Arc;
 
 #[derive(Params)]
 pub struct CompressorParams {
@@ -17,6 +18,9 @@ pub struct CompressorParams {
 
     #[id = "makeup"]
     pub makeup: FloatParam,
+
+    #[persist = "gain_reduction"]
+    pub gain_reduction: Arc<AtomicF32>,
 }
 
 impl Default for CompressorParams {
@@ -81,6 +85,8 @@ impl Default for CompressorParams {
             )
             .with_unit(" dB")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            gain_reduction: Arc::new(AtomicF32::new(0.0)),
         }
     }
 }

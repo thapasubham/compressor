@@ -1,8 +1,9 @@
-use std::process;
+//! Standalone runner for quickly testing the plugin's GUI and audio processing
+//! outside of a DAW. Connects directly to the system's audio ports.
+
+use compressor::Compressor;
+use nice_plug::prelude::nice_export_standalone;
 
 fn main() {
-    if let Err(err) = compressor::cli::run() {
-        eprintln!("Error: {err}");
-        process::exit(1);
-    }
+    nice_export_standalone::<Compressor>();
 }
