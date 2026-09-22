@@ -44,6 +44,9 @@ Requires a recent stable Rust toolchain (`rustup` recommended).
 ```shell
 cargo build --release
 ```
+```shell
+cargo nice-plug bundle compressor --release
+```
 
 ### Running standalone (no DAW required)
 
