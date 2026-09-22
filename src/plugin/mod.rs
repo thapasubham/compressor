@@ -82,6 +82,9 @@ impl Plugin for Compressor {
             let peak = channel_samples
                 .iter_mut()
                 .fold(0.0f32, |max, sample| max.max(sample.abs()));
+            self.params
+                .input_level
+                .store(gain_to_db(peak), Ordering::Relaxed);
 
             let gain = self.dsp.next_gain(peak);
             let gain_reduction_db = if bypassed {
@@ -94,14 +97,22 @@ impl Plugin for Compressor {
                 .store(gain_reduction_db, Ordering::Relaxed);
 
             if bypassed {
+                self.params
+                    .output_level
+                    .store(gain_to_db(peak), Ordering::Relaxed);
                 continue;
             }
 
+            let mut output_peak = 0.0f32;
             for sample in channel_samples {
                 let dry = *sample;
                 let wet = dry * gain;
                 *sample = dry + (wet - dry) * mix;
+                output_peak = output_peak.max(sample.abs());
             }
+            self.params
+                .output_level
+                .store(gain_to_db(output_peak), Ordering::Relaxed);
         }
 
         ProcessStatus::Normal

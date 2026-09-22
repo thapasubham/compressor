@@ -27,6 +27,12 @@ pub struct CompressorParams {
 
     #[persist = "gain_reduction"]
     pub gain_reduction: Arc<AtomicF32>,
+
+    #[persist = "input_level"]
+    pub input_level: Arc<AtomicF32>,
+
+    #[persist = "output_level"]
+    pub output_level: Arc<AtomicF32>,
 }
 
 impl Default for CompressorParams {
@@ -107,6 +113,8 @@ impl Default for CompressorParams {
             bypass: BoolParam::new("Bypass", false).make_bypass(),
 
             gain_reduction: Arc::new(AtomicF32::new(0.0)),
+            input_level: Arc::new(AtomicF32::new(f32::NEG_INFINITY)),
+            output_level: Arc::new(AtomicF32::new(f32::NEG_INFINITY)),
         }
     }
 }

@@ -219,7 +219,75 @@ impl<Message> canvas::Program<Message> for GainReductionMeter {
     }
 }
 
-fn gain_reduction_section<'a>(reduction_db: f32) -> Element<'a, Message> {
+
+struct LevelMeter {
+    level_db: f32,
+    min_db: f32,
+    max_db: f32,
+}
+
+impl<Message> canvas::Program<Message> for LevelMeter {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &Self::State,
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: nice_plug_iced::iced::Rectangle,
+        _cursor: nice_plug_iced::iced::mouse::Cursor,
+    ) -> Vec<canvas::Geometry<Renderer>> {
+        use canvas::{Frame, Path};
+        use nice_plug_iced::iced::{Point, Size};
+
+        let mut frame = Frame::new(renderer, bounds.size());
+
+        let track = Path::rectangle(Point::ORIGIN, bounds.size());
+        frame.fill(&track, HAIRLINE);
+
+        let t = ((self.level_db - self.min_db) / (self.max_db - self.min_db)).clamp(0.0, 1.0);
+        if t > 0.0 {
+            let fill = Path::rectangle(Point::ORIGIN, Size::new(bounds.width * t, bounds.height));
+            frame.fill(&fill, INK);
+        }
+
+        vec![frame.into_geometry()]
+    }
+}
+
+fn level_row<'a>(label: &'static str, level_db: f32) -> Element<'a, Message> {
+    let bar = canvas::Canvas::new(LevelMeter {
+        level_db,
+        min_db: -60.0,
+        max_db: 0.0,
+    })
+    .width(Fill)
+    .height(Length::Fixed(6.0));
+
+    let value_text = if level_db.is_finite() {
+        format!("{:.1} dB", level_db)
+    } else {
+        "-inf".to_string()
+    };
+
+    row![
+        text(label).size(10).color(MUTED).width(Length::Fixed(52.0)),
+        bar,
+        text(value_text)
+            .size(10)
+            .color(INK)
+            .width(Length::Fixed(56.0)),
+    ]
+    .spacing(12)
+    .align_y(Center)
+    .into()
+}
+
+fn gain_reduction_section<'a>(
+    reduction_db: f32,
+    input_db: f32,
+    output_db: f32,
+) -> Element<'a, Message> {
     let meter = canvas::Canvas::new(GainReductionMeter { reduction_db })
         .width(Fill)
         .height(Length::Fixed(28.0));
@@ -242,6 +310,8 @@ fn gain_reduction_section<'a>(reduction_db: f32) -> Element<'a, Message> {
         ],
         meter,
         scale,
+        level_row("INPUT", input_db),
+        level_row("OUTPUT", output_db),
     ]
     .spacing(8)
     .into()
@@ -316,6 +386,8 @@ fn view(state: &State) -> Element<'_, Message, Theme, Renderer> {
     .spacing(16);
 
     let gain_reduction_db = params.gain_reduction.load(Ordering::Relaxed);
+    let input_db = params.input_level.load(Ordering::Relaxed);
+    let output_db = params.output_level.load(Ordering::Relaxed);
 
     let content = column![
         header,
@@ -324,7 +396,7 @@ fn view(state: &State) -> Element<'_, Message, Theme, Renderer> {
         divider(),
         timing_section,
         divider(),
-        gain_reduction_section(gain_reduction_db),
+        gain_reduction_section(gain_reduction_db, input_db, output_db),
         divider(),
         output_section,
     ]
@@ -357,7 +429,8 @@ pub fn create(params: Arc<CompressorParams>) -> Option<IcedEditor> {
         PollSubNotifier::default(),
         IcedNiceSettings::default()
             .with_tile("Compressor")
-            .with_resize_hint(resize_hint),
+            .with_resize_hint(resize_hint)
+            .with_always_redraw(true),
         |persistent_state, nice_ctx| {
             Ok(nice_plug_iced::application(persistent_state, nice_ctx, boot, update, view).run())
         },
