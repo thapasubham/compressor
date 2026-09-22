@@ -75,19 +75,32 @@ impl Plugin for Compressor {
         let settings = self.params.to_settings();
         self.dsp.apply_settings(&settings);
 
+        let bypassed = self.params.bypass.value();
+        let mix = self.params.mix.value();
+
         for mut channel_samples in buffer.iter_samples() {
             let peak = channel_samples
                 .iter_mut()
                 .fold(0.0f32, |max, sample| max.max(sample.abs()));
 
             let gain = self.dsp.next_gain(peak);
-            let gain_reduction_db = (gain_to_db(gain) - settings.makeup_db).min(0.0);
+            let gain_reduction_db = if bypassed {
+                0.0
+            } else {
+                (gain_to_db(gain) - settings.makeup_db).min(0.0)
+            };
             self.params
                 .gain_reduction
                 .store(gain_reduction_db, Ordering::Relaxed);
 
+            if bypassed {
+                continue;
+            }
+
             for sample in channel_samples {
-                *sample *= gain;
+                let dry = *sample;
+                let wet = dry * gain;
+                *sample = dry + (wet - dry) * mix;
             }
         }
 
@@ -98,7 +111,7 @@ impl Plugin for Compressor {
 }
 
 impl ClapPlugin for Compressor {
-    const CLAP_ID: &'static str = "com.example.compressor";
+    const CLAP_ID: &'static str = "Cha Cha Compressor";
     const CLAP_DESCRIPTION: Option<&'static str> = Some("A basic peak compressor");
     const CLAP_MANUAL_URL: Option<&'static str> = Some(Self::URL);
     const CLAP_SUPPORT_URL: Option<&'static str> = None;

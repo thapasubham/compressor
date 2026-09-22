@@ -19,6 +19,12 @@ pub struct CompressorParams {
     #[id = "makeup"]
     pub makeup: FloatParam,
 
+    #[id = "mix"]
+    pub mix: FloatParam,
+
+    #[id = "bypass"]
+    pub bypass: BoolParam,
+
     #[persist = "gain_reduction"]
     pub gain_reduction: Arc<AtomicF32>,
 }
@@ -85,6 +91,20 @@ impl Default for CompressorParams {
             )
             .with_unit(" dB")
             .with_value_to_string(formatters::v2s_f32_rounded(1)),
+
+            mix: FloatParam::new(
+                "Mix",
+                1.0,
+                FloatRange::Linear {
+                    min: 0.0,
+                    max: 1.0,
+                },
+            )
+            .with_unit("%")
+            .with_value_to_string(formatters::v2s_f32_percentage(0))
+            .with_string_to_value(formatters::s2v_f32_percentage()),
+
+            bypass: BoolParam::new("Bypass", false).make_bypass(),
 
             gain_reduction: Arc::new(AtomicF32::new(0.0)),
         }

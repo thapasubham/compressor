@@ -14,5 +14,5 @@ cli = ["dep:hound"]
 
 [dependencies]
 nice-plug = { version = "0.4", features = ["assert_process_allocs", "standalone"] }
-nice-plug-iced = "0.4"
+nice-plug-iced = { version = "0.4", features = ["canvas"] }
 hound = { version = "3", optional = true }
